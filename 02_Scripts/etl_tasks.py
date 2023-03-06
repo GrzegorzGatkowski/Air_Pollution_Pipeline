@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from prefect import task
 from prefect.tasks import task_input_hash
 
+@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
 def get_pollution_data(start_time, end_time, lat, lon):
     """
     Retrieve air pollution data from the OpenWeatherMap API for a specified time range and location.
@@ -73,7 +74,7 @@ def get_current_pollution(cord_list) -> pd.DataFrame:
         df = df.append(temp, ignore_index=True)
     return df
 
-
+@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rename the columns of a pandas DataFrame.
@@ -93,7 +94,7 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
                         'components.pm10': 'PM10', 'components.nh3': 'NH3'})
     return df
 
-
+@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
 def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean and transform the columns of a pandas DataFrame.
