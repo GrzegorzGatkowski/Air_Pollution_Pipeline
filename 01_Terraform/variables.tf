@@ -1,9 +1,9 @@
 locals {
-  data_lake_bucket = "de-zoomcamp-lake"
+  data_lake_bucket = "airpollution"
 }
 
 variable "project" {
-  description = "learning-370118"
+  description = "continual-block-378617"
 }
 
 variable "region" {
@@ -20,5 +20,17 @@ variable "storage_class" {
 variable "BQ_DATASET" {
   description = "BigQuery Dataset that raw data (from GCS) will be written to"
   type = string
-  default = "trips_data_all"
+  default = "raw"
+}
+
+variable "BQ_DATASET_DBT_DEV" {
+  description = "BigQuery Dataset that dbt will use for during development"
+  type = string
+  default = "development"
+}
+
+variable "BQ_DATASET_DBT_PROD" {
+  description = "BigQuery Dataset that dbt will use for during development"
+  type = string
+  default = "production"
 }
