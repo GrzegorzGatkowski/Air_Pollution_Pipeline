@@ -1,17 +1,27 @@
+from pathlib import Path
 import pandas as pd
 import secrets_key
 import requests
-from datetime import datetime, timedelta
+from datetime import timedelta
 from prefect import task
 from prefect.tasks import task_input_hash
+from prefect_gcp.cloud_storage import GcsBucket
 
-@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
-def get_pollution_data(start_time, end_time, lat, lon):
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
+def get_pollution_data(
+    start_time: int, end_time: int, lat: float, lon: float
+) -> pd.DataFrame:
     """
     Retrieve air pollution data from the OpenWeatherMap API for a specified time range and location.
     Parameters:
-        start_time (timestamp): The start time for the data range, SECONDS SINCE JAN 01 1970. (UTC).
-        end_time (timestamp): The end time for the data range, SECONDS SINCE JAN 01 1970. (UTC).
+        start_time (int): The start time for the data range, SECONDS SINCE JAN 01 1970. (UTC).
+        end_time (int): The end time for the data range, SECONDS SINCE JAN 01 1970. (UTC).
         lat (float): The latitude of the location for which to retrieve data.
         lon (float): The longitude of the location for which to retrieve data.
     Returns:
@@ -23,13 +33,16 @@ def get_pollution_data(start_time, end_time, lat, lon):
     api_key = secrets_key.API_KEY
 
     # Send the API request
-    response = requests.get(api_endpoint, params={
-        "lat": lat,
-        "lon": lon,
-        "start": start_time,
-        "end": end_time,
-        "appid": api_key
-    })
+    response = requests.get(
+        api_endpoint,
+        params={
+            "lat": lat,
+            "lon": lon,
+            "start": start_time,
+            "end": end_time,
+            "appid": api_key,
+        },
+    )
 
     # Check for errors
     if response.status_code != 200:
@@ -40,20 +53,26 @@ def get_pollution_data(start_time, end_time, lat, lon):
     data = response.json()
 
     # Convert the data to a dataframe
-    df = pd.json_normalize(data['list'])
+    df = pd.json_normalize(data["list"])
 
     return df
 
-@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
 def get_current_pollution(cord_list) -> pd.DataFrame:
     """
     Retrieve current air pollution data for a list of coordinates.
-    
+
     Parameters
     ----------
     cord_list : List[Tuple[float, float]]
         A list of (latitude, longitude) tuples for which to retrieve air pollution data.
-    
+
     Returns
     -------
     df : pd.DataFrame
@@ -74,42 +93,89 @@ def get_current_pollution(cord_list) -> pd.DataFrame:
         df = df.append(temp, ignore_index=True)
     return df
 
-@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rename the columns of a pandas DataFrame.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
         The DataFrame to rename the columns of.
-    
+
     Returns
     -------
     df : pd.DataFrame
         The DataFrame with renamed columns.
     """
-    df = df.rename(columns={'components.co': 'Carbon Monoxide_(CO)', 'components.no': 'Nitric oxide_(NO)', 'components.no2': 'Nitrogen Dioxide_(NO2)',
-                        'components.o3': 'Ozone_(O3)', 'components.so2': 'Sulfur Dioxide_(SO2)', 'components.pm2_5': 'PM2_5',
-                        'components.pm10': 'PM10', 'components.nh3': 'NH3'})
+    df = df.rename(
+        columns={
+            "components.co": "Carbon Monoxide_(CO)",
+            "components.no": "Nitric oxide_(NO)",
+            "components.no2": "Nitrogen Dioxide_(NO2)",
+            "components.o3": "Ozone_(O3)",
+            "components.so2": "Sulfur Dioxide_(SO2)",
+            "components.pm2_5": "PM2_5",
+            "components.pm10": "PM10",
+            "components.nh3": "NH3",
+        }
+    )
     return df
 
-@task(retries=3, log_print=True, cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=3))
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
 def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean and transform the columns of a pandas DataFrame.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
         The DataFrame to clean and transform.
-    
+
     Returns
     -------
     df : pd.DataFrame
         The cleaned and transformed DataFrame.
     """
-    df.drop(columns='main.aqi', inplace=True)
-    df['dt'] = pd.to_datetime(df['dt'], unit='s')
-    df.set_index('dt', inplace = True)
+    df.drop(columns="main.aqi", inplace=True)
+    df["dt"] = pd.to_datetime(df["dt"], unit="s")
+    df.set_index("dt", inplace=True)
     return df
+
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
+def write_local(df: pd.DataFrame, dataset_file: str) -> Path:
+    """Write DataFrame out locally as parquet file"""
+    path = Path(f"{dataset_file}.parquet")
+    df.to_parquet(path, compression="gzip")
+    return path
+
+
+@task(
+    retries=3,
+    log_prints=True,
+    cache_key_fn=task_input_hash,
+    cache_expiration=timedelta(hours=3)
+)
+def write_gcs(path: Path) -> None:
+    """Upload local parquet file to GCS"""
+    gcs_block = GcsBucket.load("")
+    gcs_block.upload_from_path(from_path=path, to_path=path)
+    return
