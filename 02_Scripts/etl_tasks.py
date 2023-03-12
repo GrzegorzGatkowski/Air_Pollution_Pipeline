@@ -1,19 +1,12 @@
-from pathlib import Path
 import pandas as pd
 import secrets_key
 import requests
-from datetime import timedelta
 from prefect import task
-from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
+from prefect_gcp import GcpCredentials
 
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
+@task(retries=3, log_prints=True)
 def get_pollution_data(
     start_time: int, end_time: int, lat: float, lon: float
 ) -> pd.DataFrame:
@@ -58,20 +51,17 @@ def get_pollution_data(
     return df
 
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
-def get_current_pollution(cord_list) -> pd.DataFrame:
+@task(retries=3, log_prints=True)
+def get_current_pollution(lat: float, lon: float) -> pd.DataFrame:
     """
-    Retrieve current air pollution data for a list of coordinates.
+    Retrieve air pollution data for the current time for a specific latitude and longitude.
 
     Parameters
     ----------
-    cord_list : List[Tuple[float, float]]
-        A list of (latitude, longitude) tuples for which to retrieve air pollution data.
+    lat : float
+        The latitude of the location for which to retrieve data.
+    lon : float
+        The longitude of the location for which to retrieve data.
 
     Returns
     -------
@@ -79,27 +69,34 @@ def get_current_pollution(cord_list) -> pd.DataFrame:
         A pandas DataFrame containing the retrieved air pollution data.
     """
     # API endpoint and API key
+    api_endpoint = "https://api.openweathermap.org/data/2.5/air_pollution"
     api_key = secrets_key.API_KEY
 
-    # Set up an empty pandas dataframe to store the data
-    df = pd.DataFrame()
+    # Make a request to the OpenWeatherMap API
+    response = requests.get(
+        api_endpoint,
+        params={
+            "lat": lat,
+            "lon": lon,
+            "appid": api_key,
+        },
+    )
 
-    for lon, lat in cord_list:
-        # Make a request to the OpenWeatherMap API
-        url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={api_key}"
-        response = requests.get(url)
-        data = response.json()
-        temp = pd.json_normalize(data, "list", [["coord", "lon"], ["coord", "lat"]])
-        df = df.append(temp, ignore_index=True)
+    # Check for errors
+    if response.status_code != 200:
+        print("Error: API request failed with status code", response.status_code)
+        exit()
+
+    # Parse the API response
+    data = response.json()
+
+    # Convert the data to a dataframe
+    df = pd.json_normalize(data, "list", [["coord", "lon"], ["coord", "lat"]])
+
     return df
 
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
+@task(retries=3, log_prints=True)
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rename the columns of a pandas DataFrame.
@@ -116,11 +113,11 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.rename(
         columns={
-            "components.co": "Carbon Monoxide_(CO)",
-            "components.no": "Nitric oxide_(NO)",
-            "components.no2": "Nitrogen Dioxide_(NO2)",
-            "components.o3": "Ozone_(O3)",
-            "components.so2": "Sulfur Dioxide_(SO2)",
+            "components.co": "Carbon_Monoxide_CO",
+            "components.no": "Nitric_oxide_NO",
+            "components.no2": "Nitrogen_Dioxide_NO2",
+            "components.o3": "Ozone_O3",
+            "components.so2": "Sulfur_Dioxide_SO2",
             "components.pm2_5": "PM2_5",
             "components.pm10": "PM10",
             "components.nh3": "NH3",
@@ -129,12 +126,7 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
+@task(retries=3, log_prints=True)
 def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean and transform the columns of a pandas DataFrame.
@@ -151,31 +143,47 @@ def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     df.drop(columns="main.aqi", inplace=True)
     df["dt"] = pd.to_datetime(df["dt"], unit="s")
-    df.set_index("dt", inplace=True)
     return df
 
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
-def write_local(df: pd.DataFrame, dataset_file: str) -> Path:
-    """Write DataFrame out locally as parquet file"""
-    path = Path(f"{dataset_file}.parquet")
-    df.to_parquet(path, compression="gzip")
-    return path
+@task(retries=3, log_prints=True)
+def write_gcs(df: pd.DataFrame, path: str) -> None:
+    """
+    Uploads a parquet file to GCS.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame to be uploaded.
+    path : str
+        The destination path in GCS.
 
-@task(
-    retries=3,
-    log_prints=True,
-    cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(hours=3)
-)
-def write_gcs(path: Path) -> None:
-    """Upload local parquet file to GCS"""
-    gcs_block = GcsBucket.load("")
-    gcs_block.upload_from_path(from_path=path, to_path=path)
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    Exception
+        If the upload fails.
+    """
+    gcp_cloud_storage_bucket_block = GcsBucket.load("airpollution-gcs")
+    gcp_cloud_storage_bucket_block.upload_from_dataframe(
+        df, to_path=path, serialization_format="parquet"
+    )
     return
+
+
+@task(retries=3, log_prints=True)
+def write_bq(df: pd.DataFrame) -> None:
+    """Write DataFrame to BiqQuery"""
+
+    gcp_credentials_block = GcpCredentials.load("airpollution-credential")
+
+    df.to_gbq(
+        destination_table="raw.airpollution",
+        project_id="continual-block-378617",
+        credentials=gcp_credentials_block.get_credentials_from_service_account(),
+        chunksize=500_000,
+        if_exists="append",
+    )
