@@ -5,6 +5,9 @@ from prefect import task
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp import GcpCredentials
 
+cities = (
+    pd.read_csv("city_data/cities.csv").reset_index().rename(columns={"index": "id"})
+)
 
 @task(retries=3, log_prints=True)
 def get_pollution_data(
@@ -127,7 +130,7 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 @task(retries=3, log_prints=True)
-def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
+def cleaning_columns(df: pd.DataFrame, columns=[None]) -> pd.DataFrame:
     """
     Clean and transform the columns of a pandas DataFrame.
 
@@ -135,13 +138,17 @@ def cleaning_columns(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pd.DataFrame
         The DataFrame to clean and transform.
+    columns : list of str or None, optional
+        The columns to drop from the DataFrame. If None, no columns are dropped.
+        Default is None.
 
     Returns
     -------
     df : pd.DataFrame
         The cleaned and transformed DataFrame.
     """
-    df.drop(columns="main.aqi", inplace=True)
+    if columns:
+        df.drop(columns=columns, inplace=True)
     df["dt"] = pd.to_datetime(df["dt"], unit="s")
     return df
 
@@ -175,15 +182,30 @@ def write_gcs(df: pd.DataFrame, path: str) -> None:
 
 
 @task(retries=3, log_prints=True)
-def write_bq(df: pd.DataFrame) -> None:
-    """Write DataFrame to BiqQuery"""
+def write_bq(
+    df: pd.DataFrame, table: str, credentials_path: str = "airpollution-credential"
+) -> None:
+    """
+    Writes a Pandas DataFrame to BigQuery.
 
-    gcp_credentials_block = GcpCredentials.load("airpollution-credential")
+    Args:
+        df (pd.DataFrame): The DataFrame to write to BigQuery.
+        table (str): The name of the destination table in BigQuery.
+        credentials_path (str, optional): The path to the Google Cloud Platform
+            service account credentials file. Defaults to 'airpollution-credential'.
 
-    df.to_gbq(
-        destination_table="raw.airpollution",
-        project_id="continual-block-378617",
-        credentials=gcp_credentials_block.get_credentials_from_service_account(),
-        chunksize=500_000,
-        if_exists="append",
-    )
+    Raises:
+        prefect.engine.signals.FAIL: If the function fails to write to BigQuery.
+    """
+    try:
+        gcp_credentials_block = GcpCredentials.load(credentials_path)
+
+        df.to_gbq(
+            destination_table=table,
+            project_id="continual-block-378617",
+            credentials=gcp_credentials_block.get_credentials_from_service_account(),
+            chunksize=500_000,
+            if_exists="append",
+        )
+    except Exception as e:
+        print(f"Failed to write to BigQuery: {str(e)}")
