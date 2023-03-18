@@ -4,6 +4,7 @@ import requests
 from prefect import task
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp import GcpCredentials
+import os
 
 cities = pd.read_csv("./data/cities.csv").reset_index().rename(columns={"index": "id"})
 
@@ -25,7 +26,7 @@ def get_pollution_data(
 
     # API endpoint and API key
     api_endpoint = "https://api.openweathermap.org/data/2.5/air_pollution/history"
-    api_key = secrets_key.API_KEY
+    api_key = os.environ['API_KEY']
 
     # Send the API request
     response = requests.get(
@@ -72,7 +73,7 @@ def get_current_pollution(lat: float, lon: float) -> pd.DataFrame:
     """
     # API endpoint and API key
     api_endpoint = "https://api.openweathermap.org/data/2.5/air_pollution"
-    api_key = secrets_key.API_KEY
+    api_key = os.environ['API_KEY']
 
     # Make a request to the OpenWeatherMap API
     response = requests.get(
