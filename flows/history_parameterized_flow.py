@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 from prefect import flow
 from datetime import datetime, timedelta
@@ -8,7 +7,7 @@ from etl_tasks import (
     rename_columns,
     cleaning_columns,
     write_gcs,
-    cities,
+    extract_from_gcs,
 )
 
 
@@ -43,13 +42,12 @@ def etl_to_gcs(df, city) -> None:
         df (pd.DataFrame): The DataFrame to write.
         city (str): The name of the city associated with the DataFrame.
     """
-    path = Path(f"data/air_pollution/{city}.parquet")
-    with path.open(mode="wb") as f:
-        write_gcs(df, f)
+    path = f"data/air_pollution/{city}.parquet"
+    write_gcs(df, path)
 
 
 @flow()
-def etl_history_parent_flow(start_date: int, end_date: int, cities_df):
+def etl_to_gcs_parent_flow(start_date: int, end_date: int, cities_df):
     """
     A Prefect flow that processes historical air pollution data for a list of cities.
 
@@ -67,15 +65,23 @@ def etl_history_parent_flow(start_date: int, end_date: int, cities_df):
                 start_date, end_date, city["Latitude"], city["Longitude"]
             )
             df_pollution["City_index"] = index
-            write_bq(df_pollution, "raw.airpollution")
-            if index > 1:
-                break
+            etl_to_gcs(df_pollution, city["City"])
         except Exception as e:
             print(f"Failed to process city {city['City']}: {str(e)}")
 
 
 @flow()
-def etl_cities_parent_flow(cities_df):
+def etl_gcs_to_bq(cities_df):
+    for index, city in cities_df.iterrows():
+        try:
+            df = extract_from_gcs(city["City"])
+            write_bq(df, "raw.airpollution")
+        except Exception as e:
+            print(f"Failed to process city {city['City']}: {str(e)}")
+
+
+@flow()
+def etl_cities_flow(cities_df):
     """
     A Prefect flow that processes a pandas DataFrame containing information about cities.
 
@@ -92,7 +98,9 @@ def etl_cities_parent_flow(cities_df):
 
 
 if __name__ == "__main__":
+    cities = pd.read_json("./data/locations.json")
     end = int((datetime.now() - timedelta(minutes=1)).timestamp())
     start = int((datetime.strptime("2020-11-28", "%Y-%m-%d").timestamp()))
-    etl_history_parent_flow(start_date=start, end_date=end, cities_df=cities)
-    etl_cities_parent_flow(cities_df=cities)
+    # etl_to_gcs_parent_flow(start_date=start, end_date=end, cities_df=cities)
+    # etl_cities_flow(cities_df=cities)
+    etl_gcs_to_bq(cities_df=cities)
