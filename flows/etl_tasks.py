@@ -180,6 +180,20 @@ def write_gcs(df: pd.DataFrame, path: str) -> None:
 
 @task(retries=3)
 def extract_from_gcs(city: str) -> pd.DataFrame:
+    """
+    Extracts air pollution data for a given city from a Google Cloud Storage (GCS) Parquet file.
+
+    Parameters
+    ----------
+    city : str
+        The name of the city for which to extract air pollution data. The city name should match the name of the
+        corresponding GCS Parquet file, without the file extension.
+
+    Returns
+    -------
+    pd.DataFrame
+        A Pandas DataFrame containing the extracted air pollution data.
+    """
     gcs_path = f"data/air_pollution/{city}.parquet"
     gcs_block = GcsBucket.load("airpollution-gcs")
     gcs_block.get_directory(from_path=gcs_path, local_path=f"../data/")
