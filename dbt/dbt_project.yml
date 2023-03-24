@@ -34,6 +34,6 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   air_pollution:
     staging:
-      materialized: view
+      +materialized: view
     core:
-      materialized: table
+      +materialized: table

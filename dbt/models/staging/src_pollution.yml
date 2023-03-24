@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: source
+    description: A clone of a BigQuery air pollution database.
+    database: continual-block-378617
+    schema: raw
+    tables:
+      - name: airpollution
+        columns:
+          - name: City_index
+            tests:
+              - not_null
+      - name: cities
+        columns:
+          - name: City_index
+            tests:
+              - not_null

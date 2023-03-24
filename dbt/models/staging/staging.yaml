@@ -1,9 +1,0 @@
-version: 2
-
-sources:
-  - name: staging
-    database: continual-block-378617
-    schema: raw
-    tables:
-      - name: airpollution
-      - name: cities
