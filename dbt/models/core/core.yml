@@ -1,0 +1,20 @@
+version: 2
+
+models:
+
+  - name: fact_pollution
+    description: >
+      This is a table that retrieves data related to air pollution and cities 
+      from two tables named 'stg_cities' and 'stg_air_pollution' respectively. 
+      It creates two temporary tables called 'cities' and 'pollution', and then 
+      joins them together on the 'City_index' column to produce a result set 
+      that includes columns such as 'City', 'dt' (date), and various measures of air pollution. 
+      The results are sorted in ascending order by 'City' and 'dt'. 
+            
+  - name: agg_pollution
+    description: >
+      This is a SQL table that aggregates air pollution data by city and pollution quality.
+
+  - name: agg_pollution_by_month
+    description: >
+      This is a SQL table that aggregates air pollution data by city and month.

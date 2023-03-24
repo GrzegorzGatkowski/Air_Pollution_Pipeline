@@ -5,7 +5,6 @@ from etl_tasks import (
     rename_columns,
     cleaning_columns,
     get_current_pollution,
-    cities,
 )
 
 
@@ -28,22 +27,26 @@ def fetch_current_data(lat: float, lon: float) -> pd.DataFrame:
 
 
 @flow()
-def etl_current_parent_flow(cities_df):
-    """ETL workflow for fetching and processing current pollution data for a list of cities.
+def etl_current_parent_flow(locations_path: str) -> None:
+    """Extract, transform and load (ETL) workflow for fetching and processing current pollution data
+    for a list of cities.
 
     Args:
-        cities_df (pd.DataFrame): A DataFrame containing information about the cities to fetch data for.
+        locations_path (str): A string representing the file path of the JSON file containing information
+                              about the cities to fetch data for.
+
+    Returns:
+        None.
     """
-    for index, city in cities_df.iterrows():
+    cities = pd.read_json(locations_path)
+    for index, city in cities.iterrows():
         try:
             df_pollution = fetch_current_data(city["Latitude"], city["Longitude"])
             df_pollution["City_index"] = index
             write_bq(df_pollution, "raw.airpollution")
-            if index > 1:
-                break
         except Exception as e:
             print(f"Failed to process city {city['City']}: {str(e)}")
 
 
 if __name__ == "__main__":
-    etl_current_parent_flow(cities_df=cities)
+    etl_current_parent_flow("./data/locations.json")
