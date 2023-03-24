@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: stg_cities
+    description: This is a SQL table that includes data related to cities.
+    columns:
+      - name: City_index
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_air_pollution
+    description: Staged air pollution data.
+    columns:
+      - name: City_index
+        tests:
+          - not_null
+          - relationships:
+              field: 'stg_cities'
+              to: ref('City_index')
+      - name: pollution_quality
+        description: '{{ doc("pollution_status") }}'
+        tests:
+          - accepted_values:
+              values:
+                - 'Very_Poor'
+                - 'Poor'
+                - 'Moderate'
+                - 'Fair'
+                - 'Good'
+    
+              

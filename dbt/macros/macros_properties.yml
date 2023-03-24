@@ -1,0 +1,31 @@
+version: 2
+
+macros:
+  - name: get_pollution_quality
+    description: >
+      This macro returns the description of the air pollution.
+    arguments:
+      - name: Sulfur_Dioxide_SO2
+        type: float
+        description: > 
+          The concentration of sulfur dioxide in parts per billion (ppb) at the time of measurement.
+      - name: Nitrogen_Dioxide_NO2
+        type: float
+        description: > 
+          The concentration of nitrogen dioxide in parts per billion (ppb) at the time of measurement.
+      - name: PM10
+        type: float
+        description: > 
+          The concentration of coarse particulate matter with diameter less than 10 micrometers in micrograms per cubic meter (µg/m³) at the time of measurement.
+      - name: PM2_5
+        type: float
+        description: > 
+          The concentration of fine particulate matter with diameter less than 2.5 micrometers in micrograms per cubic meter (µg/m³) at the time of measurement.
+      - name: Ozone_O3
+        type: float
+        description: > 
+          The concentration of ozone in parts per million (ppm) at the time of measurement.
+      - name: Carbon_Monoxide_CO
+        type: float
+        description: > 
+          The concentration of carbon monoxide in parts per million (ppm) at the time of measurement.
