@@ -39,7 +39,7 @@ The API returns data about polluting gases, such as Carbon monoxide (CO), Nitrog
 
 The dataset has the following columns:
 
-TIMESTAMP: The date and time when the measurements were taken.
+dt: The date and time when the measurements were taken.
 
 Carbon_Monoxide_CO: The concentration of carbon monoxide in parts per million (ppm) at the time of measurement.
 
@@ -66,7 +66,7 @@ City_index: An integer index representing the city where the measurements were t
 - Infrastructure as code (IaC): Terraform
 - Workflow orchestration: Prefect (ingestion pipeline and transformation pipeline)
 - Data Warehouse: BigQuery
-- Data Lake: GCS (Optional)
+- Data Lake: GCS 
 - Batch processing/Transformations: dbt cloud
 - Dashboard: Looker Studio
 
