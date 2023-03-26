@@ -25,7 +25,9 @@ select
     Ozone_O3,
     Carbon_Monoxide_CO,
     NH3,
-    Nitric_oxide_NO
+    Nitric_oxide_NO,
+    round(Latitude,3) as Latitude,
+    round(Longitude,3) as Longitude
 from pollution as p
 inner join cities as c
 on p.City_index = c.City_index
