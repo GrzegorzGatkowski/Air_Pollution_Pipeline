@@ -3,3 +3,9 @@ credentials.py
 token.txt
 test.py
 flows/__pycache__/
+dbt/target/
+dbt/dbt_modules/
+dbt/dbt_packages/
+dbt/logs/
+
+
