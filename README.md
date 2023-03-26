@@ -28,7 +28,7 @@ The following steps were performed to analyze the air quality data for the 100 P
 - Data Retrieval: Air quality data was retrieved from the Air Pollution API for the 100 Polish cities.
 - AQI Calculation: The AQI levels were calculated for each city based on the pollutant concentrations in the data using the AQI formula provided in the API documentation.
 - City Ranking: The cities were ranked based on their AQI levels, and the most polluted cities were identified.
-- Visualization: The results were visualized using charts and other visualization tools such as BigQuery, Prefect, or Google Looker.
+- Visualization: The results were visualized using Google Looker Studio.
 
 
 ## Dataset description
@@ -62,11 +62,19 @@ City_index: An integer index representing the city where the measurements were t
 ## Proposal
 
 ### Technologies
-- Cloud: GCP
-- Infrastructure as code (IaC): Terraform
-- Workflow orchestration: Prefect (ingestion pipeline and transformation pipeline)
-- Data Warehouse: BigQuery
-- Data Lake: GCS 
-- Batch processing/Transformations: dbt cloud
-- Dashboard: Looker Studio
+## What technologies are being used?
+- Cloud: [Google Cloud](https://cloud.google.com)
+- Infrastructure: [Terraform](https://www.terraform.io/)
+- Orchestration: [Prefect](https://www.prefect.io/)
+- Data lake: [Google Cloud Storage](https://cloud.google.com/storage)
+- Data transformation: [DBT](https://www.getdbt.com/)
+- Data warehouse: [BigQuery](https://cloud.google.com/bigquery)
+- Data visualization: [Google Looker Studio](https://cloud.google.com/looker)
 
+## Dashboard example
+<p align="left">
+<img src="images/example_dashboard.JPG" width="600">
+</p>
+
+You can check my dashboard here:
+https://lookerstudio.google.com/reporting/34c9db2f-e5e6-4fae-9a89-c89c0f134c3e
