@@ -163,8 +163,8 @@ if __name__ == "__main__":
     cities = pd.read_json("./data/locations.json")
     end = int((datetime.now() - timedelta(minutes=1)).timestamp())
     start = int((datetime.strptime("2020-11-28", "%Y-%m-%d").timestamp()))
-    # etl_to_gcs_parent_flow(
-    #    start_date=start, end_date=end, locations_path="./data/locations.json"
-    # )
-    # etl_cities_flow(locations_path="./data/locations.json")
+    etl_to_gcs_parent_flow(
+        start_date=start, end_date=end, locations_path="./data/locations.json"
+    )
+    etl_cities_flow(locations_path="./data/locations.json")
     etl_gcs_to_bq(locations_path="./data/locations.json")
