@@ -2,7 +2,7 @@
 
 ## Objective
 
-This data engineering project focuses on analyzing air quality data for 100 Polish cities. The data was obtained from the Air Pollution API, which provides current, forecast, and historical air pollution data for any coordinates on the globe. The API returns data about polluting gases such as CO, NO, NO2, O3, SO2, NH3, and particulates PM2.5 and PM10.
+This data engineering project focuses on analyzing air quality data for 100 Polish cities. The data was obtained from the Weather API (https://openweathermap.org/api), which provides current, forecast, and historical air pollution data for any coordinates on the globe. The API returns data about polluting gases such as CO, NO, NO2, O3, SO2, NH3, and particulates PM2.5 and PM10.
 
 ## Architecture
 
